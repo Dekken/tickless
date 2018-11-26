@@ -38,10 +38,10 @@ T *get_features_raw(T *features, size_t cols, size_t i) {
 }
 
 template <typename T>
-T dot(T *t1, T *t2, size_t size) {
-  T result{0};
-  for (size_t i = 0; i < size; ++i) result += t1[i] * t2[i];
-  return result;
+T dot(const T *t1, const T *t2, size_t size) {
+  T res {0};
+  for (size_t i = 0; i < size; ++i) res += t1[i] * t2[i];
+  return res;
 }
 
 template <typename T>
@@ -49,9 +49,19 @@ T get_inner_prod(T *features, size_t cols, size_t i, size_t coeffs_size, T *coef
   return dot(coeffs, get_features_raw(features, cols, i), coeffs_size);
 }
 
-template <typename T>
-T loss_i(T *features, size_t cols, ulong i, T y_i, size_t coeffs_size, T *coeffs) {
-  return logistic(get_inner_prod(features, cols, i, coeffs) * y_i);
+// template <typename T>
+// T loss_i(T *features, size_t cols, ulong i, T y_i, size_t coeffs_size, T *coeffs) {
+//   return logistic(get_inner_prod(features, cols, i, coeffs) * y_i);
+// }
+
+template <typename T, typename Sparse2D>
+T loss(const Sparse2D &features, T *labels, T *coeffs) {
+  T t{0};
+  const size_t &cols = features.cols();
+  const size_t &rows = features.rows();
+  for (size_t i = 0; i < rows; i++)
+    t += logistic(features.row(i).dot(coeffs) * labels[i]);
+  return t / rows;
 }
 
 template <typename T>
@@ -100,9 +110,9 @@ void solve(T *features, T *labels, T *gradients_average, T *gradients_memory, T 
 }  // namespace dense
 
 namespace sparse {
-template <typename T, typename Sparse2D, typename NEXT_I>
+template <typename T, typename Sparse2D, typename PROX, typename NEXT_I>
 void solve(const Sparse2D &features, T *labels, T *gradients_average, T *gradients_memory,
-           T *iterate, T *steps_correction, NEXT_I _next_i) {
+           T *iterate, T *steps_correction, PROX call_single, NEXT_I _next_i) {
   size_t n_samples = features.rows();
   T n_samples_inverse = ((double)1 / (double)n_samples);
   double step = 0.00257480411965l;
@@ -120,6 +130,7 @@ void solve(const Sparse2D &features, T *labels, T *gradients_average, T *gradien
       iterate[j] -=
           step * (grad_factor_diff * x_i[idx_nnz] + steps_correction[j] * gradients_average[j]);
       gradients_average[j] += grad_factor_diff * x_i[idx_nnz] * n_samples_inverse;
+      call_single(j, iterate, step * steps_correction[j], iterate);
     }
   }
 }

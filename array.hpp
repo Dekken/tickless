@@ -88,9 +88,9 @@ class Sparse2DRaw {
   const INDEX_TYPE *row_indices(size_t i) const { return v_indices + v_row_indices[i]; }
   const INDEX_TYPE *row_indices() const { return v_row_indices; }
 
-  size_t cols() const { return *m_cols; }
-  size_t rows() const { return *m_rows; }
-  size_t size() const { return *m_size; }
+  const size_t &cols() const { return *m_cols; }
+  const size_t &rows() const { return *m_rows; }
+  const size_t &size() const { return *m_size; }
 
  private:
   const T *v_data;
