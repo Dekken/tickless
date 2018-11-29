@@ -3,7 +3,7 @@
 name: tickless
 main: cpp.cpp
 arg: -O3 -march=native -funroll-loops -ftree-vectorize -fopt-info-vec -fopt-info-vec-optimized #-fopt-info-vec-missed
-dep: mkn.kul io.cereal
+dep: io.cereal
 # mod:
 # - name: clang.format
 #   link:
