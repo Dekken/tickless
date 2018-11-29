@@ -32,8 +32,18 @@ T dot(const T *t1, const T *t2, size_t size) {
   for (size_t i = 0; i < size; ++i) res += t1[i] * t2[i];
   return res;
 }
-template <typename T, typename Sparse2D>
-T loss(const Sparse2D &features, T *labels, T *coeffs) {
+
+template <typename T>
+T loss(const Sparse2DRaw<T> &features, T *labels, T *coeffs) {
+  const size_t &rows = features.rows();
+  T t{0};
+  for (size_t i = 0; i < rows; i++)
+    t += logistic(features.row(i).dot(coeffs) * labels[i]);
+  return t / rows;
+}
+
+template <typename T>
+T loss(const Array2DRaw<T> &features, T *labels, T *coeffs) {
   const size_t &rows = features.rows();
   T t{0};
   for (size_t i = 0; i < rows; i++)
@@ -61,29 +71,32 @@ T grad_i_factor(const size_t i, const size_t cols, const size_t rows, T *feature
 
 namespace sgd {
 using INDEX_TYPE = INDICE_TYPE;
+
 namespace dense {
-
-// template <typename T, typename NEXT_I>
-// void solve(T *features, T *labels, T *gradients_average, T *gradients_memory, T *iterate,
-//            NEXT_I _next_i, size_t &t) {
-//   size_t n_samples = features.rows(), n_features = features.cols(), size_t start_t = t;
-//   Array<T> grad(iterate.size());
-//   grad.init_to_zero();
-
-//   const ulong start_t = t;
-//   for (t = start_t; t < start_t + n_samples; ++t) {
-//     const ulong i = _next_i();
-//     model->grad_i(i, iterate, grad);
-//     step_t = get_step_t();
-//     iterate.mult_incr(grad, -step_t);
-//     prox->call(iterate, step_t, iterate);
-//   }
-// }
+template <typename T, typename PROX, typename NEXT_I>
+void solve(Array2DRaw<T> &features, T *labels, T *iterate, PROX call, NEXT_I _next_i, size_t &t) {
+  constexpr double step = 1e-5;
+  size_t n_samples = features.rows(), n_features = features.cols(), start_t = t;
+  std::vector<T> v_grad(n_features, 0);
+  T *grad = v_grad.data();
+  for (t = start_t; t < start_t + n_samples; ++t) {
+    INDEX_TYPE i = _next_i();
+    T step_t = step / (t + 1);
+    // model->grad_i(i, iterate, grad);
+    const T *x_i = features.row_raw(i);
+    T grad_i_factor = labels[i] * (sigmoid(labels[i] * features.row(i).dot(iterate)) - 1);
+    // grad.mult_fill(x_i, grad_i_factor);
+    for (ulong j = 0; j < n_features; ++j)  grad[j] = x_i[j] * grad_i_factor;
+    // iterate.mult_incr(grad, -step_t);
+    for (uint64_t j = 0; j < n_features; j++) iterate[j] += grad[j] * -step_t;
+    call(iterate, step_t, iterate, n_features);
+  }
 }
+}
+
 namespace sparse {
 template <typename T, typename Sparse2D, typename PROX, typename NEXT_I>
-void solve(const Sparse2D &features, T *labels, T *gradients_average, T *gradients_memory,
-           T *iterate, T *steps_correction, PROX call, NEXT_I _next_i, size_t &t) {
+void solve(const Sparse2D &features, T *labels, T *iterate, PROX call, NEXT_I _next_i, size_t &t) {
 
   size_t n_samples = features.rows(), n_features = features.cols(), start_t = t;
   double step = 1e-5;
@@ -95,20 +108,13 @@ void solve(const Sparse2D &features, T *labels, T *gradients_average, T *gradien
     T delta = -step_t * grad_i_factor;
 
     const INDEX_TYPE *x_indices = features.row_indices(i);
-    for (uint64_t j = 0; j < features.row_size(i); j++) {
-      auto x_index_j = x_indices[j];
-      iterate[x_index_j] += x_i[j] * delta;
-      // set_data_index(
-      //     x_index_j,
-      //     this->template get_data_index<typename Array<T>::K>(x_index_j) +
-      //         (x.template get_data_index<typename Array<T>::K>(j) * a));
-    }
-
+    for (uint64_t j = 0; j < features.row_size(i); j++)
+      iterate[x_indices[j]] += x_i[j] * delta;
     call(iterate, step_t, iterate, n_features);
-    // std::cout << __LINE__ << std::endl;
   }
 }
 }
+
 }
 
 namespace saga {
@@ -194,6 +200,29 @@ void load_array_with_raw_data(Archive &ar, T *data) {
   ulong vectorSize = 0;
   ar(cereal::make_size_tag(vectorSize));
   ar(cereal::binary_data(data, static_cast<std::size_t>(vectorSize) * sizeof(T)));
+}
+
+template <class Archive, class T>
+void load_array2d_with_raw_data(Archive &ar, std::vector<T> &data, std::vector<size_t> &info) {
+  bool is_sparse = false;
+  ulong cols = 0, rows = 0, vectorSize = 0;
+
+  ar(is_sparse);
+  ar(cols, rows);
+
+  std::cout << __LINE__ << " " << cols << std::endl;
+  std::cout << __LINE__ << " " << rows << std::endl;
+
+  ar(cereal::make_size_tag(vectorSize));
+
+  data.resize(data.size() + vectorSize);
+
+  ar(cereal::binary_data(data.data(), static_cast<std::size_t>(vectorSize) * sizeof(T)));
+
+  info.resize(info.size() + 3);
+  info[0] = cols;
+  info[1] = rows;
+  info[2] = vectorSize;
 }
 
 template <class Archive, class T>

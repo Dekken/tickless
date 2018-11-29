@@ -2,6 +2,83 @@
 namespace tick {
 
 template <class T>
+class Array {
+ private:
+  using INDEX_TYPE = INDICE_TYPE;
+
+ public:
+  Array(const T *data, const size_t _size)
+      : v_data(data), _size(_size) {}
+  Array(Array &&that) : _size(that._size), v_data(that.v_data) {}
+  const T *data() const { return v_data; }
+  const size_t &size() const { return _size; }
+  T dot(const Array<T> &that) const {
+    return dot(that.v_data);
+  }
+
+  T dot(const T *const that) const {
+    T result = 0;
+    for (uint64_t i = 0; i < this->_size; i++) result += this->v_data[i] * that[i];
+    return result;
+  }
+
+  const T &operator[](int i) const { return v_data[i]; }
+
+ private:
+  const T *v_data;
+  const size_t _size;
+  Array() = delete;
+  Array(Array &that) = delete;
+  Array(const Array &that) = delete;
+  Array(const Array &&that) = delete;
+  Array &operator=(Array &that) = delete;
+  Array &operator=(Array &&that) = delete;
+  Array &operator=(const Array &that) = delete;
+  Array &operator=(const Array &&that) = delete;
+};
+
+template <class T>
+class Array2DRaw {
+ private:
+  using INDEX_TYPE = INDICE_TYPE;
+
+ public:
+  Array2DRaw(const T *_data, const size_t *_info)
+      : v_data(_data),
+        m_cols(&_info[0]),
+        m_rows(&_info[1]),
+        m_size(&_info[2]) {}
+  Array2DRaw(Array2DRaw &&that)
+      : v_data(that.v_data),
+        m_cols(that.m_cols),
+        m_rows(that.m_rows),
+        m_size(that.m_size) {}
+  T &operator[](int i) { return v_data[i]; }
+  const T *data() const { return v_data; }
+  Array<T> row(size_t i) const {
+    return Array<T>(&v_data[i * (*m_cols)], *m_cols);
+  }
+  const T *row_raw(size_t i) const { return &v_data[i * (*m_cols)]; }
+
+  const size_t &cols() const { return *m_cols; }
+  const size_t &rows() const { return *m_rows; }
+  const size_t &size() const { return *m_size; }
+
+ private:
+  const T *v_data;
+  const size_t *m_cols, *m_rows, *m_size;
+
+  Array2DRaw() = delete;
+  Array2DRaw(Array2DRaw &that) = delete;
+  Array2DRaw(const Array2DRaw &that) = delete;
+  Array2DRaw(const Array2DRaw &&that) = delete;
+  Array2DRaw &operator=(Array2DRaw &that) = delete;
+  Array2DRaw &operator=(Array2DRaw &&that) = delete;
+  Array2DRaw &operator=(const Array2DRaw &that) = delete;
+  Array2DRaw &operator=(const Array2DRaw &&that) = delete;
+};
+
+template <class T>
 class Sparse {
  private:
   using INDEX_TYPE = INDICE_TYPE;
@@ -15,7 +92,7 @@ class Sparse {
   };
   const T &operator[](int i) const { return v_data[i]; }
   const T *data() const { return v_data; }
-  size_t size() const { return _size; }
+  const size_t &size() const { return _size; }
   T dot(const Sparse<T> &that) const {
     T result = 0;
     uint64_t i1 = 0, i2 = 0;
@@ -33,6 +110,7 @@ class Sparse {
         }
       }
     }
+    return result;
   }
   T dot(const T *const that) const {
     T result = 0;
@@ -88,12 +166,9 @@ class Sparse2DRaw {
   const INDEX_TYPE *row_indices(size_t i) const { return v_indices + v_row_indices[i]; }
   const INDEX_TYPE *row_indices() const { return v_row_indices; }
 
-  size_t cols() const { return *m_cols; }
-  // Sparse2DRaw &rows(size_t rows) { return *m_rows = rows; }
-  // Sparse2DRaw &rows(size_t rows) { return *m_rows = rows; }
-  size_t rows() const { return 1000/**m_rows*/; }
-  size_t rrows() const { return *m_rows; }
-  size_t size() const { return *m_size; }
+  const size_t &cols() const { return *m_cols; }
+  const size_t &rows() const { return *m_rows; }
+  const size_t &size() const { return *m_size; }
 
  private:
   const T *v_data;

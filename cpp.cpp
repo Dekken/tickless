@@ -1,11 +1,12 @@
 
-#include <iostream>
-#include <fstream>
-#include <malloc.h>
-#include <math.h>
-#include <vector>
-#include <random>
 #include <cmath>
+#include <math.h>
+#include <chrono>
+#include <random>
+#include <vector>
+#include <fstream>
+#include <iostream>
+#include <malloc.h>
 
 #ifdef TICK_SPARSE_INDICES_INT64
 #define INDICE_TYPE ulong
@@ -17,7 +18,7 @@
 #include "array.hpp"
 #include "hpp.hpp"
 
-#include <chrono>
+#include "kul/signal.hpp"
 
 #define NOW                                                \
   std::chrono::duration_cast<std::chrono::milliseconds>(   \
@@ -30,8 +31,12 @@ int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
-  std::string features_s("url.features.cereal");
-  std::string labels_s("url.labels.cereal");
+  kul::Signal sig;
+
+  // std::string labels_s("url.labels.cereal");
+  // std::string features_s("url.features.cereal");
+  std::string labels_s("labels.cereal");
+  std::string features_s("features.cereal");
 
   std::vector<double> data;
   std::vector<size_t> info;
@@ -39,25 +44,24 @@ int main(int argc, char *argv[]) {
   {
     std::ifstream bin_data(features_s, std::ios::in | std::ios::binary);
     cereal::PortableBinaryInputArchive iarchive(bin_data);
-    tick::load_sparse2d_with_raw_data(iarchive, data, info, indices, row_indices);
+    // tick::load_sparse2d_with_raw_data(iarchive, data, info, indices, row_indices);
+    tick::load_array2d_with_raw_data(iarchive, data, info);
   }
-  tick::Sparse2DList<double> features(data, info, indices, row_indices);
+  // tick::Sparse2DList<double> features(data, info, indices, row_indices);
+  tick::Array2DRaw<double> features(data.data(), info.data());
 
-  ulong N_SAMPLES = features[0].rows();
-  // std::cout << __LINE__ << " " << N_SAMPLES << std::endl;
-  ulong N_FEATURES = features[0].cols();
-  // std::cout << __LINE__ << " " << N_FEATURES << std::endl;
+  const size_t N_FEATURES = 200;
+  const size_t N_SAMPLES = 750000;
 
-  std::vector<double> vlabels(features[0].rrows());
+  std::vector<double> vlabels(N_SAMPLES);
   {
     std::ifstream bin_data(labels_s, std::ios::in | std::ios::binary);
     cereal::PortableBinaryInputArchive iarchive(bin_data);
     tick::load_array_with_raw_data(iarchive, vlabels.data());
   }
-  N_SAMPLES = 1000;
 
   std::vector<double> gradients_average(N_FEATURES), gradients_memory(N_SAMPLES),
-      iterate(N_FEATURES), steps_corrections(tick::saga::sparse::compute_step_corrections(features[0]));
+      iterate(N_FEATURES); /*, steps_corrections(tick::saga::sparse::compute_step_corrections(features[0]));*/
 
   std::mt19937_64 generator;
   std::random_device r;
@@ -88,13 +92,15 @@ int main(int argc, char *argv[]) {
     //                           gradients_memory.data(), iterate.data(), steps_corrections.data(),
     //                           call_single, next_i);
 
-    tick::sgd::sparse::solve(features[0], vlabels.data(), gradients_average.data(),
-                              gradients_memory.data(), iterate.data(), steps_corrections.data(),
-                              call, next_i, t);
+    // tick::sgd::sparse::solve(features[0], vlabels.data(),
+    //                           iterate.data(),
+    //                           call, next_i, t);
+
+    tick::sgd::dense::solve(features, vlabels.data(), iterate.data(), call, next_i, t);
 
     if (j % 10 == 0) {
       objs.emplace_back(
-          tick::logreg::loss(features[0], vlabels.data(), iterate.data()));
+          tick::logreg::loss(features, vlabels.data(), iterate.data()));
     }
   }
   auto finish = NOW;
