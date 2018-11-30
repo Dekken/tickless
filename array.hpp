@@ -7,14 +7,11 @@ class Array {
   using INDEX_TYPE = INDICE_TYPE;
 
  public:
-  Array(const T *data, const size_t _size)
-      : v_data(data), _size(_size) {}
+  Array(const T *data, const size_t _size) : v_data(data), _size(_size) {}
   Array(Array &&that) : _size(that._size), v_data(that.v_data) {}
   const T *data() const { return v_data; }
   const size_t &size() const { return _size; }
-  T dot(const Array<T> &that) const {
-    return dot(that.v_data);
-  }
+  T dot(const Array<T> &that) const { return dot(that.v_data); }
 
   T dot(const T *const that) const {
     T result = 0;
@@ -44,20 +41,12 @@ class Array2DRaw {
 
  public:
   Array2DRaw(const T *_data, const size_t *_info)
-      : v_data(_data),
-        m_cols(&_info[0]),
-        m_rows(&_info[1]),
-        m_size(&_info[2]) {}
+      : v_data(_data), m_cols(&_info[0]), m_rows(&_info[1]), m_size(&_info[2]) {}
   Array2DRaw(Array2DRaw &&that)
-      : v_data(that.v_data),
-        m_cols(that.m_cols),
-        m_rows(that.m_rows),
-        m_size(that.m_size) {}
-  T &operator[](int i) { return v_data[i]; }
+      : v_data(that.v_data), m_cols(that.m_cols), m_rows(that.m_rows), m_size(that.m_size) {}
+  const T &operator[](int i) { return v_data[i]; }
   const T *data() const { return v_data; }
-  Array<T> row(size_t i) const {
-    return Array<T>(&v_data[i * (*m_cols)], *m_cols);
-  }
+  Array<T> row(size_t i) const { return Array<T>(&v_data[i * (*m_cols)], *m_cols); }
   const T *row_raw(size_t i) const { return &v_data[i * (*m_cols)]; }
 
   const size_t &cols() const { return *m_cols; }
