@@ -23,7 +23,7 @@
       std::chrono::system_clock::now().time_since_epoch()) \
       .count()
 
-constexpr size_t N_FEATURES = 200, N_SAMPLES = 750000, N_ITER = 100;
+constexpr size_t N_ITER = 11;
 
 int main(int argc, char *argv[]) {
   (void)argc;
@@ -32,13 +32,16 @@ int main(int argc, char *argv[]) {
   std::string labels_s("labels.cereal"), features_s("features.cereal");
 
   std::vector<size_t> info;
-  std::vector<double> data, vlabels(N_SAMPLES), iterate(N_FEATURES);
+  std::vector<double> data;
   {
     std::ifstream bin_data(features_s, std::ios::in | std::ios::binary);
     cereal::PortableBinaryInputArchive iarchive(bin_data);
     tick::load_array2d_with_raw_data(iarchive, data, info);
   }
   tick::Array2DRaw<double> features(data.data(), info.data());
+
+  const size_t N_FEATURES = features.cols(), N_SAMPLES = features.rows();
+  std::vector<double> vlabels(N_SAMPLES), iterate(N_FEATURES);
   {
     std::ifstream bin_data(labels_s, std::ios::in | std::ios::binary);
     cereal::PortableBinaryInputArchive iarchive(bin_data);
