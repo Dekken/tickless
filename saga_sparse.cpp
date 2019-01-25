@@ -23,7 +23,7 @@
       std::chrono::system_clock::now().time_since_epoch()) \
       .count()
 
-const constexpr size_t N_ITER = 200;
+const constexpr size_t N_ITER = 111;
 
 int main(int argc, char *argv[]) {
   (void)argc;

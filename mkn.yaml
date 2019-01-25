@@ -1,7 +1,7 @@
 
 
 name: tickless
-arg: -O3 -march=native -funroll-loops -ftree-vectorize -fopt-info-vec  -fopt-info-inline -fopt-info-inline-optimized -fopt-info-vec-optimized  #-fopt-info-vec-missed
+arg: -O3 -march=native -funroll-loops -ftree-vectorize -fopt-info-vec  -fopt-info-inline -fopt-info-inline-optimized -fopt-info-vec-optimized -fopt-info-vec-note   #-fopt-info-vec-missed
 dep: io.cereal
 main: sgd_dense.cpp
 # mod:

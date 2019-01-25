@@ -23,7 +23,9 @@
       std::chrono::system_clock::now().time_since_epoch()) \
       .count()
 
-constexpr size_t N_ITER = 11;
+constexpr size_t N_ITER = 111;
+constexpr size_t N_FEATURES = 200;
+constexpr size_t N_SAMPLES = 750000;
 
 int main(int argc, char *argv[]) {
   (void)argc;
@@ -40,7 +42,7 @@ int main(int argc, char *argv[]) {
   }
   tick::Array2DRaw<double> features(data.data(), info.data());
 
-  const size_t N_FEATURES = features.cols(), N_SAMPLES = features.rows();
+  // const size_t N_FEATURES = features.cols(), N_SAMPLES = features.rows();
   std::vector<double> vlabels(N_SAMPLES), iterate(N_FEATURES);
   {
     std::ifstream bin_data(labels_s, std::ios::in | std::ios::binary);
